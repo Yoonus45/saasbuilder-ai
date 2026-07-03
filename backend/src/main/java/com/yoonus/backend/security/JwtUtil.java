@@ -15,31 +15,65 @@ public class JwtUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
 
-    @Value("${jwt.secret:mysecretkeymysecretkeymysecretkey123456}")
+    @Value("${jwt.secret}")
     private String secret;
+
+    @Value("${jwt.expiration.hours:24}")
+    private long expirationHours;
+
+    @Value("${jwt.refresh.expiration.days:30}")
+    private long refreshExpirationDays;
 
     private Key key;
 
-    // Initialize key after secret is injected
     private Key getKey() {
-        if (key == null && secret != null) {
-            key = Keys.hmacShaKeyFor(secret.getBytes());
+        if (key == null) {
+            if (secret == null || secret.isBlank()) {
+                logger.error("JWT secret is not configured (property 'jwt.secret' is empty)");
+                throw new IllegalStateException("JWT secret is not configured. Set 'jwt.secret' environment variable or property.");
+            }
+            try {
+                key = Keys.hmacShaKeyFor(secret.getBytes());
+            } catch (IllegalArgumentException e) {
+                logger.error("Invalid JWT secret provided: {}", e.getMessage());
+                throw new IllegalStateException("JWT secret is invalid or too short. Provide a secure 32+ byte secret.", e);
+            }
         }
         return key;
     }
 
     public String generateToken(String email) {
         try {
+            long expirationMillis = 1000 * 60 * 60 * expirationHours;
             String token = Jwts.builder()
                     .setSubject(email)
                     .setIssuedAt(new Date())
-                    .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 hour
+                    .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
+                    .claim("type", "access")
                     .signWith(getKey(), SignatureAlgorithm.HS256)
                     .compact();
-            logger.debug("Token generated for email: {}", email);
+            logger.debug("Access token generated for email: {}", email);
             return token;
         } catch (Exception e) {
             logger.error("Error generating token for email: {}", email, e);
+            throw e;
+        }
+    }
+
+    public String generateRefreshToken(String email) {
+        try {
+            long expirationMillis = 1000 * 60 * 60 * 24 * refreshExpirationDays;
+            String token = Jwts.builder()
+                    .setSubject(email)
+                    .setIssuedAt(new Date())
+                    .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
+                    .claim("type", "refresh")
+                    .signWith(getKey(), SignatureAlgorithm.HS256)
+                    .compact();
+            logger.debug("Refresh token generated for email: {}", email);
+            return token;
+        } catch (Exception e) {
+            logger.error("Error generating refresh token for email: {}", email, e);
             throw e;
         }
     }
@@ -89,5 +123,30 @@ public class JwtUtil {
             logger.error("Error extracting email from token", e);
             return null;
         }
+    }
+
+    public Date extractExpiration(String token) {
+        try {
+            if (token == null || token.isEmpty()) {
+                return null;
+            }
+            return Jwts.parserBuilder()
+                    .setSigningKey(getKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getExpiration();
+        } catch (Exception e) {
+            logger.error("Error extracting expiration from token", e);
+            return null;
+        }
+    }
+
+    public long getExpirationMillis() {
+        return 1000 * 60 * 60 * expirationHours;
+    }
+
+    public long getRefreshExpirationMillis() {
+        return 1000 * 60 * 60 * 24 * refreshExpirationDays;
     }
 }

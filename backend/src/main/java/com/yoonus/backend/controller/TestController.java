@@ -8,7 +8,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * @deprecated Test endpoints - only for development
+ * Remove in production
+ */
 @RestController
+@Deprecated
 public class TestController {
 
     private final JwtUtil jwtUtil;
@@ -17,34 +22,28 @@ public class TestController {
         this.jwtUtil = jwtUtil;
     }
 
+    @GetMapping("/api/health")
+    public String health() {
+        return "OK";
+    }
+
     @GetMapping("/api/test")
     public String test() {
         return "JWT Authentication Successful!";
     }
 
     /**
-     * Diagnostic endpoint to test token generation
-     * Usage: GET /api/test/generate-token?email=test@example.com
+     * DEPRECATED: Only for local testing
      */
     @GetMapping("/api/test/generate-token")
     public ResponseEntity<?> generateTestToken(@RequestParam String email) {
-        try {
-            String token = jwtUtil.generateToken(email);
-            Map<String, String> response = new HashMap<>();
-            response.put("token", token);
-            response.put("email", email);
-            response.put("message", "Use this token in Authorization header: Bearer " + token);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(error);
-        }
+        Map<String, String> response = new HashMap<>();
+        response.put("error", "This endpoint is deprecated");
+        return ResponseEntity.status(403).body(response);
     }
 
     /**
-     * Diagnostic endpoint to validate token
-     * Usage: GET /api/test/validate-token?token=<jwt_token>
+     * DEPRECATED: Only for local testing
      */
     @GetMapping("/api/test/validate-token")
     public ResponseEntity<?> validateToken(@RequestParam String token) {
@@ -62,10 +61,6 @@ public class TestController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Diagnostic endpoint to check current authentication
-     * Usage: GET /api/test/current-auth with Authorization header
-     */
     @GetMapping("/api/test/current-auth")
     public ResponseEntity<?> getCurrentAuth(Authentication authentication) {
         Map<String, Object> response = new HashMap<>();
@@ -75,10 +70,7 @@ public class TestController {
             response.put("message", "No authentication found");
         } else {
             response.put("authenticated", authentication.isAuthenticated());
-            response.put("principal", authentication.getPrincipal());
-            response.put("authorities", authentication.getAuthorities());
             response.put("name", authentication.getName());
-            response.put("details", authentication.getDetails());
         }
         
         return ResponseEntity.ok(response);

@@ -1,5 +1,6 @@
 package com.yoonus.backend.exception;
 
+import com.yoonus.backend.config.RateLimitAspect;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +32,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedAccessException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorizedAccess(UnauthorizedAccessException ex, HttpServletRequest request) {
         return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(RateLimitAspect.RateLimitedException.class)
+    public ResponseEntity<ErrorResponse> handleRateLimitExceeded(RateLimitAspect.RateLimitedException ex, HttpServletRequest request) {
+        return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

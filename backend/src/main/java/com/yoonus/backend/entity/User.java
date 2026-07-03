@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
@@ -27,8 +28,15 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = true, columnDefinition = "varchar(255) default 'ROLE_USER'")
     private Role role = Role.ROLE_USER;
+
+    @PrePersist
+    public void ensureRole() {
+        if (role == null) {
+            role = Role.ROLE_USER;
+        }
+    }
 
     public User() {
     }

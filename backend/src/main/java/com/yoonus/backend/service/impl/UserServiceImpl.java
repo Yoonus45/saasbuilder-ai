@@ -11,9 +11,13 @@ import com.yoonus.backend.repository.UserRepository;
 import com.yoonus.backend.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -25,17 +29,40 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User register(RegisterRequest request) {
+        logger.info("===== REGISTRATION FLOW START =====");
+        logger.info("Incoming RegisterRequest - name: {}, email: {}, password length: {}", 
+            request.getName(), request.getEmail(), request.getPassword() != null ? request.getPassword().length() : 0);
+        
         if (userRepository.existsByEmail(request.getEmail())) {
+            logger.warn("Registration failed: Email {} already exists", request.getEmail());
             throw new DuplicateResourceException("Email already exists");
         }
+        logger.info("Email {} is unique, proceeding", request.getEmail());
 
         User user = new User();
         user.setName(request.getName());
+        logger.info("Set user name: {}", user.getName());
+        
         user.setEmail(request.getEmail().trim().toLowerCase());
+        logger.info("Set user email (normalized): {}", user.getEmail());
+        
+        logger.info("Encoding password...");
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        logger.info("Password encoded successfully");
+        
         user.setRole(Role.ROLE_USER);
+        logger.info("Set user role: {}", user.getRole());
+        logger.info("Attempting to save user to database...");
 
-        return userRepository.save(user);
+        try {
+            User savedUser = userRepository.save(user);
+            logger.info("User saved successfully, ID: {}, Email: {}", savedUser.getId(), savedUser.getEmail());
+            logger.info("===== REGISTRATION FLOW END =====");
+            return savedUser;
+        } catch (Exception e) {
+            logger.error("Database save failed: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Override

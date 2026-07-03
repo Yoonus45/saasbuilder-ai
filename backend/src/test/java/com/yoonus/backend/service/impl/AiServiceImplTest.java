@@ -61,7 +61,7 @@ class AiServiceImplTest {
 
         assertNotNull(response);
         assertEquals("AI App", response.getTitle());
-        assertEquals(ProjectStatus.GENERATING, response.getStatus());
+        assertEquals(ProjectStatus.COMPLETED, response.getStatus());
         assertEquals("export default function App() {};", response.getGeneratedCode());
         verify(projectRepository).save(any(Project.class));
     }

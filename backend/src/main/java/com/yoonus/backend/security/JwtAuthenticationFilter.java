@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
+import com.yoonus.backend.service.TokenBlacklistService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,13 +25,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     public JwtAuthenticationFilter(
             JwtUtil jwtUtil,
-            CustomUserDetailsService userDetailsService) {
+            CustomUserDetailsService userDetailsService,
+            TokenBlacklistService tokenBlacklistService) {
 
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Override
@@ -48,6 +52,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 String token = authHeader.substring(7);
                 logger.debug("Token found in Authorization header");
+
+                if (tokenBlacklistService.isRevoked(token)) {
+                    logger.warn("Token has been revoked");
+                    sendUnauthorizedResponse(response, "Token has been revoked");
+                    return;
+                }
 
                 // Validate token first
                 if (!jwtUtil.validateToken(token)) {

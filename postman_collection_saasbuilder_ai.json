@@ -1,0 +1,219 @@
+{
+  "info": {
+    "name": "SaaSBuilder AI - API",
+    "description": "Collection to test SaaSBuilder AI backend APIs. Automatically saves accessToken and refreshToken and attaches Authorization header for protected requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [],
+  "item": [
+    {
+      "name": "Collection Pre-request Script",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// If accessToken is set in the environment, attach it as Authorization header",
+              "var token = pm.environment.get('accessToken');",
+              "if (token) {",
+              "    pm.request.headers.upsert({ key: 'Authorization', value: 'Bearer ' + token });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dev User\",\n  \"email\": \"dev@example.com\",\n  \"password\": \"secret123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api","auth","register"] },
+            "description": "Register a new user. Expected success: 201 with JSON { accessToken, refreshToken, expiresIn }. Expected errors: 400 (validation), 409 (duplicate email)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Save tokens if present",
+                  "try {",
+                  "  var body = pm.response.json();",
+                  "  if (body.accessToken) pm.environment.set('accessToken', body.accessToken);",
+                  "  if (body.refreshToken) pm.environment.set('refreshToken', body.refreshToken);",
+                  "} catch(e) {}",
+                  "pm.test('Status is 201', function () { pm.expect(pm.response.code).to.eql(201); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"dev@example.com\",\n  \"password\": \"secret123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] },
+            "description": "Login existing user. Expected success: 200 with JSON { accessToken, refreshToken, expiresIn }"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  var body = pm.response.json();",
+                  "  if (body.accessToken) pm.environment.set('accessToken', body.accessToken);",
+                  "  if (body.refreshToken) pm.environment.set('refreshToken', body.refreshToken);",
+                  "} catch (e) {}",
+                  "pm.test('Status is 200', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api","auth","refresh"] },
+            "description": "Use the refresh token to obtain a new access token. Expected: 200 with new accessToken."
+          },
+          "event": [ { "listen": "test", "script": { "exec": [ "try { var b=pm.response.json(); if(b.accessToken) pm.environment.set('accessToken', b.accessToken); } catch(e){}; pm.test('Status is 200', function(){ pm.expect(pm.response.code).to.eql(200); });" ], "type":"text/javascript" } } ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api","auth","logout"] },
+            "description": "Logout by revoking the access token. Expected: 200 with message. Requires Authorization header."
+          },
+          "event": [ { "listen": "test", "script": { "exec": [ "pm.test('Status is 200', function(){ pm.expect(pm.response.code).to.be.oneOf([200,204]);});" ], "type":"text/javascript" } } ]
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/user/me", "host": ["{{baseUrl}}"], "path": ["api","user","me"] },
+            "description": "Get currently authenticated user. Requires Authorization header. Expected: 200 with user payload."
+          },
+          "event": [ { "listen": "test", "script": { "exec": [ "pm.test('Status 200', function(){ pm.expect(pm.response.code).to.eql(200); });" ], "type":"text/javascript" } } ]
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/user/me", "host": ["{{baseUrl}}"], "path": ["api","user","me"] },
+            "description": "Update current user's profile. Requires Authorization header. Expected: 200 with updated user."
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/user/me", "host": ["{{baseUrl}}"], "path": ["api","user","me"] },
+            "description": "Delete the current account. Requires Authorization header. Expected: 204 No Content."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"My Project\",\n  \"description\": \"Sample desc\",\n  \"prompt\": \"Create starter app\",\n  \"framework\": \"react\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/projects", "host": ["{{baseUrl}}"], "path": ["api","projects"] },
+            "description": "Create a project. Requires Authorization. Expected: 201 ProjectResponse."
+          }
+        },
+        {
+          "name": "List Projects",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/projects", "host": ["{{baseUrl}}"], "path": ["api","projects"] }, "description": "List projects for current user." }
+        },
+        {
+          "name": "Get Project",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/projects/:id", "host": ["{{baseUrl}}"], "path": ["api","projects",":id"] }, "description": "Get project by id. Replace :id with numeric id." }
+        },
+        {
+          "name": "Update Project",
+          "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Updated title\",\n  \"description\": \"Updated desc\"\n}" }, "url": { "raw": "{{baseUrl}}/api/projects/:id", "host": ["{{baseUrl}}"], "path": ["api","projects",":id"] }, "description":"Update project by id." }
+        },
+        {
+          "name": "Delete Project",
+          "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/api/projects/:id", "host": ["{{baseUrl}}"], "path": ["api","projects",":id"] }, "description": "Delete project by id." }
+        },
+        {
+          "name": "Export Project",
+          "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/api/projects/:id/export", "host": ["{{baseUrl}}"], "path": ["api","projects",":id","export"] }, "description": "Export project metadata and provide download link." }
+        },
+        {
+          "name": "Download Project",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/projects/:id/download", "host": ["{{baseUrl}}"], "path": ["api","projects",":id","download"] }, "description": "Download project as zip/attachment." }
+        }
+      ]
+    },
+    {
+      "name": "AI",
+      "item": [
+        {
+          "name": "Generate Code",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Generate starter\",\n  \"prompt\": \"Create a small React component\",\n  \"framework\": \"react\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/ai/generate", "host": ["{{baseUrl}}"], "path": ["api","ai","generate"] },
+            "description": "Generate code for a project using AI. Expected: 200 AiGenerationResponse containing generatedCode and new project id."
+          }
+        },
+        {
+          "name": "AI History",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/ai/history", "host": ["{{baseUrl}}"], "path": ["api","ai","history"] }, "description": "Get AI generation history for current user." }
+        }
+      ]
+    },
+    {
+      "name": "Utility",
+      "item": [
+        {
+          "name": "Health",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/health", "host": ["{{baseUrl}}"], "path": ["api","health"] }, "description": "Health endpoint. Expected: OK" }
+        },
+        {
+          "name": "Test Auth Current",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/test/current-auth", "host": ["{{baseUrl}}"], "path": ["api","test","current-auth"] }, "description": "Check current authentication context (for debugging)." }
+        }
+      ]
+    }
+  ]
+}
