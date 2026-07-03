@@ -9,4 +9,6 @@ import java.util.List;
 public interface AiGenerationHistoryRepository extends JpaRepository<AiGenerationHistory, Long> {
 
     List<AiGenerationHistory> findAllByUserOrderByCreatedAtDesc(User user);
+
+    List<AiGenerationHistory> findAllByUser(User user);
 }

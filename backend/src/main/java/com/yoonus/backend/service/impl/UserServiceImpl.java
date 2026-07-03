@@ -7,6 +7,10 @@ import com.yoonus.backend.entity.User;
 import com.yoonus.backend.exception.DuplicateResourceException;
 import com.yoonus.backend.exception.InvalidCredentialsException;
 import com.yoonus.backend.exception.ResourceNotFoundException;
+import com.yoonus.backend.repository.AiGenerationHistoryRepository;
+import com.yoonus.backend.repository.PasswordResetTokenRepository;
+import com.yoonus.backend.repository.ProjectRepository;
+import com.yoonus.backend.repository.SubscriptionRepository;
 import com.yoonus.backend.repository.UserRepository;
 import com.yoonus.backend.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,10 +25,23 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ProjectRepository projectRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final AiGenerationHistoryRepository aiGenerationHistoryRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
-    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserServiceImpl(UserRepository userRepository,
+                           PasswordEncoder passwordEncoder,
+                           ProjectRepository projectRepository,
+                           SubscriptionRepository subscriptionRepository,
+                           AiGenerationHistoryRepository aiGenerationHistoryRepository,
+                           PasswordResetTokenRepository passwordResetTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.projectRepository = projectRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.aiGenerationHistoryRepository = aiGenerationHistoryRepository;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
     }
 
     @Override
@@ -100,6 +117,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public void deleteAccount(String email) {
         User user = getCurrentUser(email);
+
+        projectRepository.deleteAll(projectRepository.findAllByUser(user));
+        subscriptionRepository.deleteAll(subscriptionRepository.findAllByUser(user));
+        aiGenerationHistoryRepository.deleteAll(aiGenerationHistoryRepository.findAllByUser(user));
+        passwordResetTokenRepository.deleteAll(passwordResetTokenRepository.findAllByUser(user));
+
         userRepository.delete(user);
     }
 }

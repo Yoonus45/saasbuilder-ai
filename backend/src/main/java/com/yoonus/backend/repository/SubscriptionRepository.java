@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface SubscriptionRepository extends JpaRepository<Subscription, Long> {
 
     Optional<Subscription> findFirstByUserOrderByCreatedAtDesc(User user);
+
+    java.util.List<Subscription> findAllByUser(User user);
 }

@@ -2,6 +2,10 @@ package com.yoonus.backend.service.impl;
 
 import com.yoonus.backend.dto.UpdateProfileRequest;
 import com.yoonus.backend.entity.User;
+import com.yoonus.backend.repository.AiGenerationHistoryRepository;
+import com.yoonus.backend.repository.PasswordResetTokenRepository;
+import com.yoonus.backend.repository.ProjectRepository;
+import com.yoonus.backend.repository.SubscriptionRepository;
 import com.yoonus.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +28,18 @@ class UserServiceImplUserModuleTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private ProjectRepository projectRepository;
+
+    @Mock
+    private SubscriptionRepository subscriptionRepository;
+
+    @Mock
+    private AiGenerationHistoryRepository aiGenerationHistoryRepository;
+
+    @Mock
+    private PasswordResetTokenRepository passwordResetTokenRepository;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -69,6 +85,10 @@ class UserServiceImplUserModuleTest {
         user.setEmail("alice@example.com");
 
         when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(user));
+        when(projectRepository.findAllByUser(user)).thenReturn(java.util.List.of());
+        when(subscriptionRepository.findAllByUser(user)).thenReturn(java.util.List.of());
+        when(aiGenerationHistoryRepository.findAllByUser(user)).thenReturn(java.util.List.of());
+        when(passwordResetTokenRepository.findAllByUser(user)).thenReturn(java.util.List.of());
 
         userService.deleteAccount("alice@example.com");
 

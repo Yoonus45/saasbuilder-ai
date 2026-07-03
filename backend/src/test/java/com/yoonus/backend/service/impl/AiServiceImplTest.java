@@ -5,6 +5,7 @@ import com.yoonus.backend.dto.AiGenerationResponse;
 import com.yoonus.backend.entity.Project;
 import com.yoonus.backend.entity.ProjectStatus;
 import com.yoonus.backend.entity.User;
+import com.yoonus.backend.repository.AiGenerationHistoryRepository;
 import com.yoonus.backend.repository.ProjectRepository;
 import com.yoonus.backend.repository.UserRepository;
 import com.yoonus.backend.service.impl.ai.AiCodeGenerator;
@@ -29,6 +30,9 @@ class AiServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AiGenerationHistoryRepository generationHistoryRepository;
 
     @Mock
     private AiCodeGenerator aiCodeGenerator;
@@ -56,6 +60,7 @@ class AiServiceImplTest {
         when(userRepository.findByEmail("owner@example.com")).thenReturn(Optional.of(owner));
         when(aiCodeGenerator.generateCode("Create a landing page", "React")).thenReturn("export default function App() {};");
         when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(generationHistoryRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         AiGenerationResponse response = aiService.generateCode("owner@example.com", request);
 
@@ -64,5 +69,6 @@ class AiServiceImplTest {
         assertEquals(ProjectStatus.COMPLETED, response.getStatus());
         assertEquals("export default function App() {};", response.getGeneratedCode());
         verify(projectRepository).save(any(Project.class));
+        verify(generationHistoryRepository).save(any());
     }
 }
