@@ -43,6 +43,27 @@ public class Project {
     @Column(nullable = false)
     private ProjectStatus status = ProjectStatus.CREATED;
 
+    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean favorite = false;
+
+    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean pinned = false;
+
+    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean archived = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String tags;
+
+    @Column(columnDefinition = "INTEGER DEFAULT 1")
+    private int generationCount = 1;
+
+    @Column(columnDefinition = "TEXT DEFAULT 'Not deployed'")
+    private String deploymentStatus = "Not deployed";
+
+    @Column(columnDefinition = "TEXT DEFAULT 'Not connected'")
+    private String githubStatus = "Not connected";
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -111,6 +132,62 @@ public class Project {
 
     public void setStatus(ProjectStatus status) {
         this.status = status;
+    }
+
+    public boolean isFavorite() {
+        return favorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        this.favorite = favorite;
+    }
+
+    public boolean isPinned() {
+        return pinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
+    }
+
+    public boolean isArchived() {
+        return archived;
+    }
+
+    public void setArchived(boolean archived) {
+        this.archived = archived;
+    }
+
+    public String getTags() {
+        return tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
+    }
+
+    public int getGenerationCount() {
+        return generationCount;
+    }
+
+    public void setGenerationCount(int generationCount) {
+        this.generationCount = generationCount;
+    }
+
+    public String getDeploymentStatus() {
+        return deploymentStatus;
+    }
+
+    public void setDeploymentStatus(String deploymentStatus) {
+        this.deploymentStatus = deploymentStatus;
+    }
+
+    public String getGithubStatus() {
+        return githubStatus;
+    }
+
+    public void setGithubStatus(String githubStatus) {
+        this.githubStatus = githubStatus;
     }
 
     public User getUser() {

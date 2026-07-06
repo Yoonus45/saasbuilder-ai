@@ -18,6 +18,20 @@ public class CreateProjectRequest {
     @NotBlank(message = "Framework is required")
     private String framework;
 
+    private Boolean favorite;
+
+    private Boolean pinned;
+
+    private Boolean archived;
+
+    private String tags;
+
+    private Integer generationCount;
+
+    private String deploymentStatus;
+
+    private String githubStatus;
+
     public CreateProjectRequest() {
     }
 
@@ -51,5 +65,61 @@ public class CreateProjectRequest {
 
     public void setFramework(String framework) {
         this.framework = framework;
+    }
+
+    public Boolean getFavorite() {
+        return favorite;
+    }
+
+    public void setFavorite(Boolean favorite) {
+        this.favorite = favorite;
+    }
+
+    public Boolean getPinned() {
+        return pinned;
+    }
+
+    public void setPinned(Boolean pinned) {
+        this.pinned = pinned;
+    }
+
+    public Boolean getArchived() {
+        return archived;
+    }
+
+    public void setArchived(Boolean archived) {
+        this.archived = archived;
+    }
+
+    public String getTags() {
+        return tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
+    }
+
+    public Integer getGenerationCount() {
+        return generationCount;
+    }
+
+    public void setGenerationCount(Integer generationCount) {
+        this.generationCount = generationCount;
+    }
+
+    public String getDeploymentStatus() {
+        return deploymentStatus;
+    }
+
+    public void setDeploymentStatus(String deploymentStatus) {
+        this.deploymentStatus = deploymentStatus;
+    }
+
+    public String getGithubStatus() {
+        return githubStatus;
+    }
+
+    public void setGithubStatus(String githubStatus) {
+        this.githubStatus = githubStatus;
     }
 }

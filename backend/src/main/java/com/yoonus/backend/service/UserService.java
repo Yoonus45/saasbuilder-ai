@@ -12,6 +12,8 @@ public interface UserService {
 
     User getCurrentUser(String email);
 
+    User getCurrentUserFromToken(String token);
+
     User updateProfile(String email, UpdateProfileRequest request);
 
     void deleteAccount(String email);

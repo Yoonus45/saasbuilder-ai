@@ -1,14 +1,15 @@
 package com.yoonus.backend.dto;
 
 import com.yoonus.backend.entity.ProjectStatus;
+import java.util.List;
 
 public class AiGenerationResponse {
-
     private Long projectId;
     private String title;
     private String message;
     private ProjectStatus status;
     private String generatedCode;
+    private List<GeneratedFileDto> files;
 
     public AiGenerationResponse() {
     }
@@ -19,6 +20,14 @@ public class AiGenerationResponse {
         this.message = message;
         this.status = status;
         this.generatedCode = generatedCode;
+    }
+
+    public AiGenerationResponse(Long projectId, String title, String message, ProjectStatus status, List<GeneratedFileDto> files) {
+        this.projectId = projectId;
+        this.title = title;
+        this.message = message;
+        this.status = status;
+        this.files = files;
     }
 
     public Long getProjectId() {
@@ -59,5 +68,13 @@ public class AiGenerationResponse {
 
     public void setGeneratedCode(String generatedCode) {
         this.generatedCode = generatedCode;
+    }
+
+    public List<GeneratedFileDto> getFiles() {
+        return files;
+    }
+
+    public void setFiles(List<GeneratedFileDto> files) {
+        this.files = files;
     }
 }

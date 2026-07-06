@@ -3,6 +3,8 @@ package com.yoonus.backend.controller;
 import com.yoonus.backend.dto.AiGenerationHistoryResponse;
 import com.yoonus.backend.dto.AiGenerationRequest;
 import com.yoonus.backend.dto.AiGenerationResponse;
+import com.yoonus.backend.dto.AiReviewRequest;
+import com.yoonus.backend.dto.AiReviewResponse;
 import com.yoonus.backend.service.AiService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +33,14 @@ public class AiController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = authentication.getName();
         AiGenerationResponse response = aiService.generateCode(email, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/review")
+    public ResponseEntity<AiReviewResponse> review(@Valid @RequestBody AiReviewRequest request) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+        AiReviewResponse response = aiService.reviewCode(email, request);
         return ResponseEntity.ok(response);
     }
 

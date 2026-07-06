@@ -10,6 +10,8 @@ import com.yoonus.backend.exception.ResourceNotFoundException;
 import com.yoonus.backend.exception.UnauthorizedAccessException;
 import com.yoonus.backend.repository.ProjectRepository;
 import com.yoonus.backend.repository.UserRepository;
+import com.yoonus.backend.repository.WorkspaceMemberRepository;
+import com.yoonus.backend.service.WorkspaceCollaborationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -34,6 +36,12 @@ class ProjectServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private WorkspaceMemberRepository workspaceMemberRepository;
+
+    @Mock
+    private WorkspaceCollaborationService workspaceCollaborationService;
 
     @InjectMocks
     private ProjectServiceImpl projectService;
@@ -65,6 +73,37 @@ class ProjectServiceImplTest {
         assertEquals("React", response.getFramework());
         assertEquals(ProjectStatus.CREATED, response.getStatus());
         verify(projectRepository).save(any(Project.class));
+    }
+
+    @Test
+    void createProject_shouldPersistProjectManagementFields() {
+        User owner = new User();
+        owner.setId(1L);
+        owner.setEmail("owner@example.com");
+
+        CreateProjectRequest request = new CreateProjectRequest();
+        request.setTitle("AI Dashboard");
+        request.setDescription("A sample dashboard");
+        request.setPrompt("Create a dashboard");
+        request.setFramework("React");
+        request.setFavorite(true);
+        request.setPinned(true);
+        request.setArchived(false);
+        request.setTags("ai, dashboard");
+        request.setGithubStatus("Connected");
+
+        when(userRepository.findByEmail("owner@example.com")).thenReturn(Optional.of(owner));
+        when(projectRepository.save(any(Project.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProjectResponse response = projectService.createProject("owner@example.com", request);
+
+        assertNotNull(response);
+        assertEquals(true, response.isFavorite());
+        assertEquals(true, response.isPinned());
+        assertEquals(false, response.isArchived());
+        assertEquals("ai, dashboard", response.getTags());
+        assertEquals("Connected", response.getGithubStatus());
+        assertEquals(1, response.getGenerationCount());
     }
 
     @Test
@@ -108,6 +147,30 @@ class ProjectServiceImplTest {
         ProjectResponse response = projectService.getProject(12L, "owner@example.com");
 
         assertEquals("My App", response.getTitle());
+    }
+
+    @Test
+    void updateProject_shouldRejectViewerAccess() {
+        User owner = new User();
+        owner.setId(1L);
+        owner.setEmail("owner@example.com");
+
+        User viewer = new User();
+        viewer.setId(2L);
+        viewer.setEmail("viewer@example.com");
+
+        Project project = new Project();
+        project.setId(13L);
+        project.setTitle("Shared App");
+        project.setUser(owner);
+
+        when(userRepository.findByEmail("viewer@example.com")).thenReturn(Optional.of(viewer));
+        when(projectRepository.findById(13L)).thenReturn(Optional.of(project));
+        when(workspaceCollaborationService.canView(project, viewer)).thenReturn(true);
+        when(workspaceCollaborationService.canEdit(project, viewer)).thenReturn(false);
+
+        assertThrows(UnauthorizedAccessException.class,
+                () -> projectService.updateProject(13L, "viewer@example.com", new UpdateProjectRequest()));
     }
 
     @Test

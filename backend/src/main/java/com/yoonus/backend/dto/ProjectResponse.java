@@ -13,6 +13,13 @@ public class ProjectResponse {
     private String generatedCode;
     private String framework;
     private ProjectStatus status;
+    private boolean favorite;
+    private boolean pinned;
+    private boolean archived;
+    private String tags;
+    private int generationCount;
+    private String deploymentStatus;
+    private String githubStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -20,7 +27,9 @@ public class ProjectResponse {
     }
 
     public ProjectResponse(Long id, String title, String description, String prompt, String generatedCode,
-                           String framework, ProjectStatus status, LocalDateTime createdAt, LocalDateTime updatedAt) {
+                           String framework, ProjectStatus status, boolean favorite, boolean pinned,
+                           boolean archived, String tags, int generationCount, String deploymentStatus,
+                           String githubStatus, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -28,6 +37,13 @@ public class ProjectResponse {
         this.generatedCode = generatedCode;
         this.framework = framework;
         this.status = status;
+        this.favorite = favorite;
+        this.pinned = pinned;
+        this.archived = archived;
+        this.tags = tags;
+        this.generationCount = generationCount;
+        this.deploymentStatus = deploymentStatus;
+        this.githubStatus = githubStatus;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -86,6 +102,62 @@ public class ProjectResponse {
 
     public void setStatus(ProjectStatus status) {
         this.status = status;
+    }
+
+    public boolean isFavorite() {
+        return favorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        this.favorite = favorite;
+    }
+
+    public boolean isPinned() {
+        return pinned;
+    }
+
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
+    }
+
+    public boolean isArchived() {
+        return archived;
+    }
+
+    public void setArchived(boolean archived) {
+        this.archived = archived;
+    }
+
+    public String getTags() {
+        return tags;
+    }
+
+    public void setTags(String tags) {
+        this.tags = tags;
+    }
+
+    public int getGenerationCount() {
+        return generationCount;
+    }
+
+    public void setGenerationCount(int generationCount) {
+        this.generationCount = generationCount;
+    }
+
+    public String getDeploymentStatus() {
+        return deploymentStatus;
+    }
+
+    public void setDeploymentStatus(String deploymentStatus) {
+        this.deploymentStatus = deploymentStatus;
+    }
+
+    public String getGithubStatus() {
+        return githubStatus;
+    }
+
+    public void setGithubStatus(String githubStatus) {
+        this.githubStatus = githubStatus;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -12,6 +12,7 @@ import com.yoonus.backend.repository.PasswordResetTokenRepository;
 import com.yoonus.backend.repository.ProjectRepository;
 import com.yoonus.backend.repository.SubscriptionRepository;
 import com.yoonus.backend.repository.UserRepository;
+import com.yoonus.backend.security.JwtUtil;
 import com.yoonus.backend.service.UserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -29,19 +30,22 @@ public class UserServiceImpl implements UserService {
     private final SubscriptionRepository subscriptionRepository;
     private final AiGenerationHistoryRepository aiGenerationHistoryRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final JwtUtil jwtUtil;
 
     public UserServiceImpl(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
                            ProjectRepository projectRepository,
                            SubscriptionRepository subscriptionRepository,
                            AiGenerationHistoryRepository aiGenerationHistoryRepository,
-                           PasswordResetTokenRepository passwordResetTokenRepository) {
+                           PasswordResetTokenRepository passwordResetTokenRepository,
+                           JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.projectRepository = projectRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.aiGenerationHistoryRepository = aiGenerationHistoryRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
@@ -98,6 +102,15 @@ public class UserServiceImpl implements UserService {
     public User getCurrentUser(String email) {
         return userRepository.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    @Override
+    public User getCurrentUserFromToken(String token) {
+        String email = jwtUtil.extractEmail(token);
+        if (email == null || email.isBlank()) {
+            throw new ResourceNotFoundException("Invalid token");
+        }
+        return getCurrentUser(email);
     }
 
     @Override
