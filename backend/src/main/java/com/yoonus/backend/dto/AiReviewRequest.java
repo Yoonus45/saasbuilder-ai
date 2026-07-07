@@ -9,6 +9,16 @@ public class AiReviewRequest {
 
     private Long projectId;
 
+    private String fileName;
+
+    private String fileContent;
+
+    private String refactoringType;
+
+    private String testFramework;
+
+    private String documentationType;
+
     private List<ReviewFileInput> files = new ArrayList<>();
 
     @NotBlank(message = "Review type is required")
@@ -23,6 +33,46 @@ public class AiReviewRequest {
 
     public void setProjectId(Long projectId) {
         this.projectId = projectId;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getFileContent() {
+        return fileContent;
+    }
+
+    public void setFileContent(String fileContent) {
+        this.fileContent = fileContent;
+    }
+
+    public String getRefactoringType() {
+        return refactoringType;
+    }
+
+    public void setRefactoringType(String refactoringType) {
+        this.refactoringType = refactoringType;
+    }
+
+    public String getTestFramework() {
+        return testFramework;
+    }
+
+    public void setTestFramework(String testFramework) {
+        this.testFramework = testFramework;
+    }
+
+    public String getDocumentationType() {
+        return documentationType;
+    }
+
+    public void setDocumentationType(String documentationType) {
+        this.documentationType = documentationType;
     }
 
     public List<ReviewFileInput> getFiles() {
