@@ -4,11 +4,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.MediaType;
-import org.springframework.lang.NonNull;
-import com.yoonus.backend.service.TokenBlacklistService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,105 +13,75 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Servlet filter that intercepts every request exactly once and validates the
+ * JWT present in the {@code Authorization: Bearer <token>} header.
+ *
+ * <p>If the token is valid, the filter populates the {@link SecurityContextHolder}
+ * so Spring Security treats the request as authenticated for the remainder of
+ * the filter chain.</p>
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
-
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
-    private final TokenBlacklistService tokenBlacklistService;
 
-    public JwtAuthenticationFilter(
-            JwtUtil jwtUtil,
-            CustomUserDetailsService userDetailsService,
-            TokenBlacklistService tokenBlacklistService) {
-
+    /**
+     * Constructor injection.
+     *
+     * @param jwtUtil            JWT utility for token parsing and validation
+     * @param userDetailsService loads user credentials from the database
+     */
+    public JwtAuthenticationFilter(JwtUtil jwtUtil,
+                                   CustomUserDetailsService userDetailsService) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
-        this.tokenBlacklistService = tokenBlacklistService;
     }
 
+    /**
+     * Perform the JWT validation and SecurityContext population on each request.
+     *
+     * @param request     the incoming HTTP request
+     * @param response    the HTTP response
+     * @param filterChain the next filter in the chain
+     */
     @Override
-    protected void doFilterInternal(
-            @NonNull HttpServletRequest request,
-            @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
             throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
-        logger.debug("Processing request for path: {}", request.getRequestURI());
+        final String authHeader = request.getHeader("Authorization");
 
-        try {
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-
-                String token = authHeader.substring(7);
-                logger.debug("Token found in Authorization header");
-
-                if (tokenBlacklistService.isRevoked(token)) {
-                    logger.warn("Token has been revoked");
-                    sendUnauthorizedResponse(response, "Token has been revoked");
-                    return;
-                }
-
-                // Validate token first
-                if (!jwtUtil.validateToken(token)) {
-                    logger.warn("Token validation failed");
-                    sendUnauthorizedResponse(response, "Invalid or expired JWT token");
-                    return;
-                }
-
-                String email = jwtUtil.extractEmail(token);
-                logger.debug("Extracted email from token: {}", email);
-
-                if (email != null &&
-                        SecurityContextHolder.getContext().getAuthentication() == null) {
-
-                    try {
-                        logger.debug("Loading user details for email: {}", email);
-                        UserDetails userDetails =
-                                userDetailsService.loadUserByUsername(email);
-                        logger.debug("User details loaded successfully");
-
-                        UsernamePasswordAuthenticationToken authentication =
-                                new UsernamePasswordAuthenticationToken(
-                                        userDetails,
-                                        null,
-                                        userDetails.getAuthorities());
-
-                        authentication.setDetails(
-                                new WebAuthenticationDetailsSource()
-                                        .buildDetails(request));
-
-                        SecurityContextHolder.getContext()
-                                .setAuthentication(authentication);
-                        logger.info("Authentication set in SecurityContextHolder for user: {}", email);
-                    } catch (Exception ex) {
-                        logger.error("Failed to load user details for email: {}", email, ex);
-                        throw ex;
-                    }
-                } else {
-                    logger.warn("Email is null or authentication already set. Email: {}, Existing Auth: {}", 
-                            email, SecurityContextHolder.getContext().getAuthentication());
-                }
-            } else {
-                logger.debug("No Authorization header or does not start with Bearer");
-            }
-
+        // Skip filter if no Bearer token is present
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
-
-        } catch (Exception e) {
-            // Clear any partial authentication
-            SecurityContextHolder.clearContext();
-            logger.error("Authentication error", e);
-            sendUnauthorizedResponse(response, "Authentication failed: " + e.getMessage());
+            return;
         }
-    }
 
-    private void sendUnauthorizedResponse(HttpServletResponse response, String message)
-            throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write("{\"error\":\"" + message + "\"}");
+        final String token = authHeader.substring(7); // strip "Bearer "
+
+        // Skip if token is invalid or already authenticated
+        if (!jwtUtil.isTokenValid(token) ||
+                SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        final String email = jwtUtil.extractEmail(token);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+        // Build authentication token and store in SecurityContext
+        UsernamePasswordAuthenticationToken authToken =
+                new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
+                );
+        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authToken);
+
+        filterChain.doFilter(request, response);
     }
 }

@@ -1,52 +1,34 @@
 package com.yoonus.backend.dto;
 
-import com.yoonus.backend.entity.Role;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
+/**
+ * DTO returned by the {@code GET /api/auth/me} protected endpoint.
+ * Exposes safe user profile fields — never exposes the hashed password.
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserProfileResponse {
+
+    /** Database ID of the user. */
     private Long id;
+
+    /** Full display name. */
     private String name;
+
+    /** Unique email address. */
     private String email;
-    private Role role;
 
-    public UserProfileResponse() {
-    }
+    /** Role assigned to the user (e.g. "USER", "ADMIN"). */
+    private String role;
 
-    public UserProfileResponse(Long id, String name, String email, Role role) {
-        this.id = id;
-        this.name = name;
-        this.email = email;
-        this.role = role;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
+    /** UTC timestamp of account creation. */
+    private LocalDateTime createdAt;
 }

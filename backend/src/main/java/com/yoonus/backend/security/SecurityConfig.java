@@ -1,79 +1,130 @@
 package com.yoonus.backend.security;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Central Spring Security configuration for the SaaS Builder backend.
+ *
+ * <ul>
+ *   <li>Stateless JWT-based session management (no HTTP sessions)</li>
+ *   <li>CSRF disabled (not needed for stateless REST APIs)</li>
+ *   <li>CORS enabled for the Vite dev server at {@code http://localhost:5173}</li>
+ *   <li>{@code /api/auth/**} is public; all other endpoints require authentication</li>
+ * </ul>
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomUserDetailsService userDetailsService;
 
-    @Value("${app.cors.allowed-origins:http://localhost:5173}")
-    private String allowedOrigins;
-
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    /**
+     * Constructor injection.
+     *
+     * @param jwtAuthenticationFilter the JWT filter to add to the filter chain
+     * @param userDetailsService      custom user details service
+     */
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          CustomUserDetailsService userDetailsService) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.userDetailsService = userDetailsService;
     }
 
+    /**
+     * Configure the main HTTP security filter chain.
+     *
+     * @param http the {@link HttpSecurity} builder
+     * @return the configured {@link SecurityFilterChain}
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/api/auth/**", "/api/health").permitAll()
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .sessionManagement(session ->
+                    session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/api/auth/**").permitAll()
+                    .anyRequest().authenticated()
+            )
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtAuthenticationFilter,
+                    UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
+    /**
+     * CORS configuration that allows the React Vite dev server to call the API.
+     *
+     * @return a {@link CorsConfigurationSource} bean
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        
-        // Create a mutable list of allowed origins
-        List<String> origins = new java.util.ArrayList<>(Arrays.asList(allowedOrigins.split(",")));
-        // Add localhost with various ports that might be used during development
-        origins.add("http://localhost:5173");
-        origins.add("http://localhost:5174");
-        origins.add("http://localhost:5175");
-        origins.add("http://localhost:5176");
-        origins.add("http://localhost:5177");
-        origins.add("http://127.0.0.1:5173");
-        origins.add("http://127.0.0.1:5174");
-        origins.add("http://127.0.0.1:5175");
-        
-        configuration.setAllowedOrigins(origins);
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
-        
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
 
+    /**
+     * DAO-based authentication provider wired with the custom user details service
+     * and BCrypt password encoder.
+     *
+     * @return the configured {@link AuthenticationProvider}
+     */
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-        return configuration.getAuthenticationManager();
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
+
+    /**
+     * BCrypt password encoder bean (work factor 10).
+     *
+     * @return {@link PasswordEncoder} backed by BCrypt
+     */
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * Expose the {@link AuthenticationManager} bean for use in the auth service.
+     *
+     * @param config Spring's authentication configuration
+     * @return the application's {@link AuthenticationManager}
+     * @throws Exception if the manager cannot be retrieved
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
+            throws Exception {
+        return config.getAuthenticationManager();
     }
 }
