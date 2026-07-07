@@ -12,6 +12,10 @@ public class WorkspaceContextResponse {
     private List<String> riskFlags = new ArrayList<>();
     private List<String> recommendedFocusAreas = new ArrayList<>();
     private List<String> recentActions = new ArrayList<>();
+    private List<String> dependencyGraph = new ArrayList<>();
+    private List<String> workspaceIndex = new ArrayList<>();
+    private List<String> fileRelationships = new ArrayList<>();
+    private String architectureVisualization;
 
     public WorkspaceContextResponse() {
     }
@@ -80,5 +84,37 @@ public class WorkspaceContextResponse {
 
     public void setRecentActions(List<String> recentActions) {
         this.recentActions = recentActions == null ? new ArrayList<>() : recentActions;
+    }
+
+    public List<String> getDependencyGraph() {
+        return dependencyGraph;
+    }
+
+    public void setDependencyGraph(List<String> dependencyGraph) {
+        this.dependencyGraph = dependencyGraph == null ? new ArrayList<>() : dependencyGraph;
+    }
+
+    public List<String> getWorkspaceIndex() {
+        return workspaceIndex;
+    }
+
+    public void setWorkspaceIndex(List<String> workspaceIndex) {
+        this.workspaceIndex = workspaceIndex == null ? new ArrayList<>() : workspaceIndex;
+    }
+
+    public List<String> getFileRelationships() {
+        return fileRelationships;
+    }
+
+    public void setFileRelationships(List<String> fileRelationships) {
+        this.fileRelationships = fileRelationships == null ? new ArrayList<>() : fileRelationships;
+    }
+
+    public String getArchitectureVisualization() {
+        return architectureVisualization;
+    }
+
+    public void setArchitectureVisualization(String architectureVisualization) {
+        this.architectureVisualization = architectureVisualization;
     }
 }

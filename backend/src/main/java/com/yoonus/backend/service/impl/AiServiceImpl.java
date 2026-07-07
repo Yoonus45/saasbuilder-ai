@@ -164,57 +164,20 @@ public class AiServiceImpl implements AiService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        Project project = null;
-        if (request != null && request.getProjectId() != null) {
-            project = projectRepository.findById(request.getProjectId())
-                    .orElse(null);
-        }
-
-        String projectSummary = project != null && project.getTitle() != null
-                ? "Project " + project.getTitle() + " is ready for agent review."
-                : "Workspace context is ready for agent review.";
-
-        List<String> keyFiles = new ArrayList<>();
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append("Analyze the provided workspace files and return a JSON object representing the workspace context. ");
+        promptBuilder.append("Return compact JSON only with projectSummary, keyFiles (array of strings), riskFlags (array of strings), recommendedFocusAreas (array of strings), recentActions (array of strings), dependencyGraph (array of strings), workspaceIndex (array of strings), fileRelationships (array of strings), and architectureVisualization (string with markdown/mermaid).\n");
+        promptBuilder.append("Files:\n");
         if (request != null && request.getFiles() != null) {
-            request.getFiles().forEach(file -> {
+            request.getFiles().forEach((file) -> {
                 if (file != null && file.getPath() != null) {
-                    keyFiles.add(file.getPath());
+                    promptBuilder.append(file.getPath()).append("\n").append(file.getCode() == null ? "" : file.getCode()).append("\n---\n");
                 }
             });
         }
 
-        List<String> riskFlags = new ArrayList<>();
-        if (request != null && request.getFiles() != null) {
-            request.getFiles().forEach(file -> {
-                if (file != null && file.getCode() != null && file.getCode().contains("console.log")) {
-                    riskFlags.add("Console logging present in " + file.getPath());
-                }
-            });
-        }
-        if (riskFlags.isEmpty()) {
-            riskFlags.add("No obvious workspace risks detected");
-        }
-
-        List<String> recommendedFocusAreas = new ArrayList<>();
-        recommendedFocusAreas.add("Architecture review");
-        recommendedFocusAreas.add("Cross-file consistency");
-        if (request != null && "security".equalsIgnoreCase(request.getAnalysisMode())) {
-            recommendedFocusAreas.add("Security hardening");
-        }
-
-        List<String> recentActions = new ArrayList<>();
-        recentActions.add("Loaded workspace context");
-        recentActions.add("Prepared multi-file analysis");
-
-        return new WorkspaceContextResponse(
-                request != null ? request.getProjectId() : null,
-                projectSummary,
-                request != null ? request.getAnalysisMode() : null,
-                keyFiles,
-                riskFlags,
-                recommendedFocusAreas,
-                recentActions
-        );
+        String rawPayload = aiCodeGenerator.reviewCode(promptBuilder.toString(), "workspace-context");
+        return parseWorkspaceContextPayload(rawPayload, request);
     }
 
     @Override
@@ -222,46 +185,23 @@ public class AiServiceImpl implements AiService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        List<String> findings = new ArrayList<>();
-        List<String> crossFileIssues = new ArrayList<>();
-        List<String> suggestedNextActions = new ArrayList<>();
-        List<String> proposedFileChanges = new ArrayList<>();
-
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append("Perform a project-wide analysis on the provided workspace files. ");
+        promptBuilder.append("Return compact JSON only with summary, projectSummary, riskLevel, findings (array of strings), crossFileIssues (array of strings), suggestedNextActions (array of strings), proposedFileChanges (array of strings), dependencyGraph (array of strings), workspaceIndex (array of strings), fileRelationships (array of strings), and architectureVisualization (string with markdown/mermaid).\n");
+        if (request != null && request.getPrompt() != null && !request.getPrompt().isBlank()) {
+            promptBuilder.append("User requested focus: ").append(request.getPrompt()).append("\n");
+        }
+        promptBuilder.append("Files:\n");
         if (request != null && request.getFiles() != null) {
-            for (WorkspaceAnalysisRequest.WorkspaceFileInput file : request.getFiles()) {
-                if (file == null || file.getCode() == null) {
-                    continue;
+            request.getFiles().forEach((file) -> {
+                if (file != null && file.getPath() != null) {
+                    promptBuilder.append(file.getPath()).append("\n").append(file.getCode() == null ? "" : file.getCode()).append("\n---\n");
                 }
-                if (file.getCode().contains("console.log")) {
-                    findings.add("Remove debug logging from " + file.getPath());
-                    crossFileIssues.add("Debug logging appears in " + file.getPath());
-                    proposedFileChanges.add("Clean debug statements in " + file.getPath());
-                }
-                if (file.getCode().contains("export default function")) {
-                    suggestedNextActions.add("Review component structure for " + file.getPath());
-                }
-            }
+            });
         }
 
-        if (findings.isEmpty()) {
-            findings.add("No immediate issues found in the selected workspace files");
-            suggestedNextActions.add("Review the broader project structure");
-        }
-
-        if (crossFileIssues.isEmpty()) {
-            crossFileIssues.add("No cross-file issues detected");
-        }
-
-        return new WorkspaceAnalysisResponse(
-                request != null ? request.getProjectId() : null,
-                "Project-wide analysis completed",
-                request != null ? request.getAnalysisMode() : null,
-                findings,
-                crossFileIssues,
-                suggestedNextActions,
-                proposedFileChanges,
-                findings.isEmpty() ? "low" : "medium"
-        );
+        String rawPayload = aiCodeGenerator.reviewCode(promptBuilder.toString(), "workspace-analysis");
+        return parseWorkspaceAnalysisPayload(rawPayload, request);
     }
 
     @Override
@@ -284,6 +224,74 @@ public class AiServiceImpl implements AiService {
                 history.getFramework(),
                 history.getCreatedAt()
         );
+    }
+
+    private WorkspaceContextResponse parseWorkspaceContextPayload(String rawPayload, WorkspaceContextRequest request) {
+        WorkspaceContextResponse response = new WorkspaceContextResponse();
+        response.setProjectId(request != null ? request.getProjectId() : null);
+        response.setAnalysisMode(request != null ? request.getAnalysisMode() : null);
+
+        if (rawPayload == null || rawPayload.isBlank()) {
+            response.setProjectSummary("No workspace context returned.");
+            return response;
+        }
+
+        try {
+            String normalizedPayload = normalizeJsonPayload(rawPayload);
+            JsonNode node;
+            try {
+                node = objectMapper.readTree(normalizedPayload);
+            } catch (Exception parseException) {
+                node = objectMapper.readTree(normalizedPayload.replace("\n", "\\n"));
+            }
+            response.setProjectSummary(node.path("projectSummary").asText("Workspace context generated."));
+            response.setKeyFiles(parseStringArray(node.path("keyFiles")));
+            response.setRiskFlags(parseStringArray(node.path("riskFlags")));
+            response.setRecommendedFocusAreas(parseStringArray(node.path("recommendedFocusAreas")));
+            response.setRecentActions(parseStringArray(node.path("recentActions")));
+            response.setDependencyGraph(parseStringArray(node.path("dependencyGraph")));
+            response.setWorkspaceIndex(parseStringArray(node.path("workspaceIndex")));
+            response.setFileRelationships(parseStringArray(node.path("fileRelationships")));
+            response.setArchitectureVisualization(node.path("architectureVisualization").asText(""));
+        } catch (Exception ex) {
+            response.setProjectSummary("Workspace context parsing failed: " + ex.getMessage());
+        }
+        return response;
+    }
+
+    private WorkspaceAnalysisResponse parseWorkspaceAnalysisPayload(String rawPayload, WorkspaceAnalysisRequest request) {
+        WorkspaceAnalysisResponse response = new WorkspaceAnalysisResponse();
+        response.setProjectId(request != null ? request.getProjectId() : null);
+        response.setAnalysisMode(request != null ? request.getAnalysisMode() : null);
+
+        if (rawPayload == null || rawPayload.isBlank()) {
+            response.setSummary("No analysis returned.");
+            return response;
+        }
+
+        try {
+            String normalizedPayload = normalizeJsonPayload(rawPayload);
+            JsonNode node;
+            try {
+                node = objectMapper.readTree(normalizedPayload);
+            } catch (Exception parseException) {
+                node = objectMapper.readTree(normalizedPayload.replace("\n", "\\n"));
+            }
+            response.setSummary(node.path("summary").asText("Project-wide analysis completed."));
+            response.setProjectSummary(node.path("projectSummary").asText(""));
+            response.setRiskLevel(node.path("riskLevel").asText("low"));
+            response.setFindings(parseStringArray(node.path("findings")));
+            response.setCrossFileIssues(parseStringArray(node.path("crossFileIssues")));
+            response.setSuggestedNextActions(parseStringArray(node.path("suggestedNextActions")));
+            response.setProposedFileChanges(parseStringArray(node.path("proposedFileChanges")));
+            response.setDependencyGraph(parseStringArray(node.path("dependencyGraph")));
+            response.setWorkspaceIndex(parseStringArray(node.path("workspaceIndex")));
+            response.setFileRelationships(parseStringArray(node.path("fileRelationships")));
+            response.setArchitectureVisualization(node.path("architectureVisualization").asText(""));
+        } catch (Exception ex) {
+            response.setSummary("Analysis parsing failed: " + ex.getMessage());
+        }
+        return response;
     }
 
     private AiReviewResponse parseReviewPayload(String rawPayload, String reviewType, User user) {

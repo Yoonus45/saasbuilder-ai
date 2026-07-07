@@ -13,6 +13,11 @@ public class WorkspaceAnalysisResponse {
     private List<String> suggestedNextActions = new ArrayList<>();
     private List<String> proposedFileChanges = new ArrayList<>();
     private String riskLevel;
+    private List<String> dependencyGraph = new ArrayList<>();
+    private List<String> workspaceIndex = new ArrayList<>();
+    private List<String> fileRelationships = new ArrayList<>();
+    private String projectSummary;
+    private String architectureVisualization;
 
     public WorkspaceAnalysisResponse() {
     }
@@ -90,5 +95,45 @@ public class WorkspaceAnalysisResponse {
 
     public void setRiskLevel(String riskLevel) {
         this.riskLevel = riskLevel;
+    }
+
+    public List<String> getDependencyGraph() {
+        return dependencyGraph;
+    }
+
+    public void setDependencyGraph(List<String> dependencyGraph) {
+        this.dependencyGraph = dependencyGraph == null ? new ArrayList<>() : dependencyGraph;
+    }
+
+    public List<String> getWorkspaceIndex() {
+        return workspaceIndex;
+    }
+
+    public void setWorkspaceIndex(List<String> workspaceIndex) {
+        this.workspaceIndex = workspaceIndex == null ? new ArrayList<>() : workspaceIndex;
+    }
+
+    public List<String> getFileRelationships() {
+        return fileRelationships;
+    }
+
+    public void setFileRelationships(List<String> fileRelationships) {
+        this.fileRelationships = fileRelationships == null ? new ArrayList<>() : fileRelationships;
+    }
+
+    public String getProjectSummary() {
+        return projectSummary;
+    }
+
+    public void setProjectSummary(String projectSummary) {
+        this.projectSummary = projectSummary;
+    }
+
+    public String getArchitectureVisualization() {
+        return architectureVisualization;
+    }
+
+    public void setArchitectureVisualization(String architectureVisualization) {
+        this.architectureVisualization = architectureVisualization;
     }
 }
