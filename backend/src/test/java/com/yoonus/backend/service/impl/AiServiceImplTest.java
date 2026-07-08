@@ -440,6 +440,7 @@ class AiServiceImplTest {
 
         when(userRepository.findByEmail("workspace@example.com")).thenReturn(Optional.of(owner));
         when(projectRepository.findById(77L)).thenReturn(Optional.of(project));
+        when(aiCodeGenerator.reviewCode(any(), any())).thenReturn("{\"projectSummary\":\"Analytics Dashboard\",\"keyFiles\":[\"src/App.tsx\", \"src/main.tsx\"],\"riskFlags\":[\"Missing tests\"]}");
 
         WorkspaceContextResponse response = aiService.buildWorkspaceContext("workspace@example.com", request);
 
@@ -475,6 +476,7 @@ class AiServiceImplTest {
 
         when(userRepository.findByEmail("agent@example.com")).thenReturn(Optional.of(owner));
         when(projectRepository.findById(88L)).thenReturn(Optional.of(project));
+        when(aiCodeGenerator.reviewCode(any(), any())).thenReturn("{\"summary\":\"Project-wide analysis completed.\",\"findings\":[\"A finding\"],\"crossFileIssues\":[\"console.log('debug') left in App.tsx\"],\"suggestedNextActions\":[\"Review the code\"]}");
 
         WorkspaceAnalysisResponse response = aiService.analyzeWorkspace("agent@example.com", request);
 
