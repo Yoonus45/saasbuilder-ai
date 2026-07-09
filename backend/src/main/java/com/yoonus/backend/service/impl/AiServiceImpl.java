@@ -166,6 +166,13 @@ public class AiServiceImpl implements AiService {
 
         StringBuilder promptBuilder = new StringBuilder();
         promptBuilder.append("Analyze the provided workspace files and return a JSON object representing the workspace context. ");
+        if (request != null && request.getProjectId() != null) {
+            projectRepository.findById(request.getProjectId()).ifPresent(project -> {
+                promptBuilder.append("Project Context: Title: ").append(project.getTitle())
+                        .append(", Description: ").append(project.getDescription())
+                        .append(", Framework: ").append(project.getFramework()).append(". ");
+            });
+        }
         promptBuilder.append("Return compact JSON only with projectSummary, keyFiles (array of strings), riskFlags (array of strings), recommendedFocusAreas (array of strings), recentActions (array of strings), dependencyGraph (array of strings), workspaceIndex (array of strings), fileRelationships (array of strings), and architectureVisualization (string with markdown/mermaid).\n");
         promptBuilder.append("Files:\n");
         if (request != null && request.getFiles() != null) {
@@ -187,6 +194,13 @@ public class AiServiceImpl implements AiService {
 
         StringBuilder promptBuilder = new StringBuilder();
         promptBuilder.append("Perform a project-wide analysis on the provided workspace files. ");
+        if (request != null && request.getProjectId() != null) {
+            projectRepository.findById(request.getProjectId()).ifPresent(project -> {
+                promptBuilder.append("Project Context: Title: ").append(project.getTitle())
+                        .append(", Description: ").append(project.getDescription())
+                        .append(", Framework: ").append(project.getFramework()).append(". ");
+            });
+        }
         promptBuilder.append("Return compact JSON only with summary, projectSummary, riskLevel, findings (array of strings), crossFileIssues (array of strings), suggestedNextActions (array of strings), proposedFileChanges (array of strings), dependencyGraph (array of strings), workspaceIndex (array of strings), fileRelationships (array of strings), and architectureVisualization (string with markdown/mermaid).\n");
         if (request != null && request.getPrompt() != null && !request.getPrompt().isBlank()) {
             promptBuilder.append("User requested focus: ").append(request.getPrompt()).append("\n");
