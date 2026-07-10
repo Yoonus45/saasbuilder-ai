@@ -118,3 +118,4 @@ public class WorkspaceContextResponse {
         this.architectureVisualization = architectureVisualization;
     }
 }
+

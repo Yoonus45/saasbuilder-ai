@@ -35,7 +35,10 @@ class UserServiceImplTest {
 
     @Test
     void register_shouldHashPasswordAndAssignDefaultRole() {
-        RegisterRequest request = new RegisterRequest("Alice", "alice@example.com", "secret123");
+        RegisterRequest request = new RegisterRequest();
+        request.setName("Alice");
+        request.setEmail("alice@example.com");
+        request.setPassword("secret123");
 
         when(userRepository.existsByEmail("alice@example.com")).thenReturn(false);
         when(passwordEncoder.encode("secret123")).thenReturn("encoded-password");
@@ -45,7 +48,7 @@ class UserServiceImplTest {
 
         assertNotNull(savedUser);
         assertEquals("encoded-password", savedUser.getPassword());
-        assertEquals("ROLE_USER", savedUser.getRole().name());
+        assertEquals("ROLE_USER", savedUser.getRole());
         verify(userRepository).save(any(User.class));
     }
 

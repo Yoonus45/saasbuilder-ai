@@ -80,6 +80,27 @@ public class JwtUtil {
         }
     }
 
+    /**
+     * Compatibility wrapper used by the existing auth controllers.
+     */
+    public boolean validateToken(String token) {
+        return isTokenValid(token);
+    }
+
+    /**
+     * Expose the configured JWT expiration for controller usage.
+     */
+    public long getExpirationMillis() {
+        return expirationMs;
+    }
+
+    /**
+     * Extract the expiration claim from a token.
+     */
+    public Date extractExpiration(String token) {
+        return parseClaims(token).getExpiration();
+    }
+
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private Claims parseClaims(String token) {

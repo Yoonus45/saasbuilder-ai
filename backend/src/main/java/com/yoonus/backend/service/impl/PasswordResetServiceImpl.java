@@ -51,9 +51,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         PasswordResetToken token = new PasswordResetToken(user, resetToken, expiresAt);
         resetTokenRepository.save(token);
 
-        // In production, send email with reset link containing the token
-        // For now, just log it
-        System.out.println("Password reset token for " + email + ": " + resetToken);
+        // In production, send email with reset link containing the token.
     }
 
     @Override
