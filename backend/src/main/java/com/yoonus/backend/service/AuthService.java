@@ -86,13 +86,16 @@ public class AuthService {
      * @throws org.springframework.security.core.AuthenticationException if credentials are invalid
      */
     public AuthResponse login(LoginRequest request) {
-        // Throws AuthenticationException on bad credentials — Security handles the response
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+        } catch (org.springframework.security.core.AuthenticationException ex) {
+            throw new com.yoonus.backend.exception.InvalidCredentialsException("Invalid email or password");
+        }
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new IllegalStateException("User not found after authentication"));
